@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+    });
+    </script>
+    <script src='https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" href="pure-min.css">
+  </head>
+  <body>
+    <div class="content">
+      <h1>On the spectral radius of weight matrices in RNNs</h1>
+      <p>
+        When initializing the weight matrix (let's assume there is only one)
+        in an RNN (recurrent neural network) it is said (e.g. by Ilya Sutskever
+        in his PhD thesis) that you want the spectral radius (the size
+        of the largest eigenvalue in absolute value) to be slightly less
+        than $1$.
+      </p>
+      <p>
+        A common way to initialize the weight matrix is,
+      </p>
+    </div>
+
+    <div class="code">
+      <pre><code class="python">
+  size = 100
+  variance = 0.1
+  W = np.random.randn(size, size)*variance
+      </code></pre>
+    </div>
+
+    <div class="content">
+      <p>
+        and then play with the variance until it works.
+      </p>
+      <p>
+        In this post we'll do a bit of exploratory mathematics
+        to prod the how the variance and size of a matrix, $W$,
+        affects its spectral radius $\rho(W)$.
+      </p>
+
+      <h2>The distribution of the spectral radius</h2>
+      <p>
+        Since the spectral radius is somewhat difficult to
+        work with theoretically, we'll take an experimental approach
+        instead.
+      </p>
+      <p>
+        Let $W_{n,v}$ be the random matrix of size $n$ with
+        (zero mean) gaussian entries with variance $v$.
+        The spectral radius is a random variable of these entries.
+        How does the distribution of the spectral radius
+        look for, say, $W_{10,2}$? Sampling
+        a set of $10,000$ matrices from this distibution
+        shows the result.
+      </p>
+      <img src="spectHist.png" width=700 />
+      <p>
+        It looks somewhat Poisson distributed.
+        We could stop here, conjecture that it indeed is, and
+        then try to prove it, but let's move on.
+      </p>
+
+      <h2>Fixing the matrix size</h2>
+      <p>
+        Typically when training RNNs the number of hidden units
+        is first decided upon, and then you go about mucking with the variance.
+        Below I've fixed the matrix size to $10$. I then
+        changed the variance between $0.1$ and $10$, and looked at
+        the <i>expected</i> spectral radius (since all
+        we really care about is that $E\{ \rho(W)\} \approx 1$).
+      </p>
+      <img src="fixedMatrixSize.png" width=700 />
+      <p>
+        It looks linear! That's nice.
+        The coefficient here is about $k=3$.
+        Thus, for the case of $s=10$, we know
+        that if our variance is, say, $v=0.1$,
+        then the spectral radius will be about $\rho(W_{10,0.1}) = 0.3$.
+      </p>
+
+      <h2>Varying the matrix size</h2>
+      <p>
+        What if we train the network, and then decide
+        that we'd really like more hidden units?
+        Can we be sure that the spectral radius
+        will stay the same (assuming we don't change the variance)?
+      </p>
+      <img src="varyingMatrixSize.png" width=700 />
+      <p>
+        Above I'm varying the size of the matrix,
+        while looking at the proportion between the
+        expected spectral radius and variance in the
+        entries. It's not constant!
+      </p>
+      <p>
+        In other words, be aware that when increasing
+        the size of a matrix then its spectral radius will
+        also increase.
+      </p>
+
+      <h2>Conclusion</h2>
+      <p>
+        The conclusion of this post is basically
+        just that if you have something like this in your code,
+      </p>
+    </div>
+
+    <div class="code">
+      <pre><code class="python">
+  size = 100
+  variance = 0.1
+  W = np.random.randn(size, size)*variance
+      </code></pre>
+    </div>
+
+    <div class="content">
+      <p>
+        then you should be aware that if you change the size
+        of the matrix, then you'll also have to change
+        the variance.
+      </p>
+
+      <h2>Fixing it</h2>
+      <p>
+        How could we go about fixing this?
+        Preferably we'd like a theoretically motivated
+        expression between the variance, size of the matrix,
+        and spectral radius, so that we can
+        ensure the radius is size-invariant
+        (by automatically changing the variance).
+      </p>
+      <p>
+        Doing it theoretically is a theorem
+        for another day. But one
+        ad hoc method often suggested
+        is the following.
+        (There are theoretical arguments,
+        but I've never seen one from the perspective
+        of trying to keep the spectral radius fixed.)
+      </p>
+    </div>
+
+    <div class="code">
+      <pre><code class="python">
+  size = 100
+  variance = 0.1 / np.sqrt(size)
+  W = np.random.randn(size, size)*variance
+      </code></pre>
+    </div>
+
+    <div class="content">
+      <p>
+        Amazingly, when we calculate the proportion
+        between the expected spectral radius and the variance,
+        as a function of the matrix size (using the normalization
+        trick above), it's almost always at $\sim 1$.
+      </p>
+      <img src="normalizedVaryingMatrixSize.png" width=700 />
+      <p>
+        The conclusion is that when you
+        want the spectral radius to remain
+        fixed; just use the above instead.
+      </p>
+
+    </div>
+
+
+      <div id="author">
+        Written by <a href="https://github.com/DanielRapp">Daniel Rapp</a>.
+        Check out the code for this <a href="https://github.com/DanielRapp/rnn-spectral-radius">on Github</a>.
+      </div>
+    </div>
+
+    </div>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </body>
+</html>
